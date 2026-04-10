@@ -89,7 +89,7 @@
   --sidebar: 210 20% 98%;
   --sidebar-foreground: 222 47% 11%;
   --sidebar-border: 220 13% 91%;
-  --sidebar-primary: 221 83% 53%;
+  --sidebar-primary: 222 45% 18%;
   --sidebar-primary-foreground: 0 0% 100%;
   --sidebar-accent: 210 20% 96%;
   --sidebar-accent-foreground: 222 47% 11%;
@@ -99,8 +99,8 @@
   --popover-foreground: 222 47% 11%;
   --popover-border: 220 13% 91%;
 
-  /* Blue primary */
-  --primary: 221 83% 53%;
+  /* Navy primary (#1a2744) */
+  --primary: 222 45% 18%;
   --primary-foreground: 0 0% 100%;
 
   --secondary: 210 20% 96%;
@@ -116,13 +116,13 @@
   --destructive-foreground: 0 0% 100%;
 
   --input: 220 13% 91%;
-  --ring: 221 83% 53%;
+  --ring: 222 45% 18%;
 
-  --chart-1: 221 83% 53%;
-  --chart-2: 262 70% 65%;
-  --chart-3: 142 70% 45%;
-  --chart-4: 38 92% 50%;
-  --chart-5: 0 72% 51%;
+  --chart-1: 222 45% 18%;
+  --chart-2: 201 80% 30%;
+  --chart-3: 152 60% 30%;
+  --chart-4: 38 80% 40%;
+  --chart-5: 0 60% 40%;
 
   --app-font-sans: 'Inter', 'system-ui', sans-serif;
   --app-font-serif: Georgia, serif;
