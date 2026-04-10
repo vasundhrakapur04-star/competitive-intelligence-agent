@@ -1,11 +1,33 @@
 import { Router } from "express";
-import { ai } from "@workspace/integrations-gemini-ai";
-import { db } from "@workspace/db";
-import { reportsTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { GoogleGenAI } from "@google/genai";
 import { AnalyzeCompetitorsBody } from "@workspace/api-zod";
 
 const router = Router();
+
+// ─── In-memory report store (no database needed) ────────────────────────────
+
+interface StoredReport {
+  id: number;
+  title: string;
+  companies: string[];
+  profiles: CompanyProfile[];
+  createdAt: Date;
+}
+
+let nextId = 1;
+const reports: StoredReport[] = [];
+
+// ─── Gemini client (direct Google GenAI SDK) ────────────────────────────────
+
+function getGeminiClient(): GoogleGenAI {
+  const apiKey = process.env.GOOGLE_AI_API_KEY;
+  if (!apiKey) {
+    throw new Error("GOOGLE_AI_API_KEY is not set");
+  }
+  return new GoogleGenAI({ apiKey });
+}
+
+// ─── Tavily search ──────────────────────────────────────────────────────────
 
 interface TavilySearchResult {
   title: string;
@@ -47,6 +69,8 @@ async function searchTavily(query: string): Promise<TavilySearchResult[]> {
   return data.results || [];
 }
 
+// ─── Company data gathering ─────────────────────────────────────────────────
+
 interface CompanySearchData {
   company: string;
   results: {
@@ -75,7 +99,7 @@ async function gatherCompanyData(company: string): Promise<CompanySearchData> {
   return { company, results: allResults };
 }
 
-// ─── Company data quality validation ─────────────────────────────────────────
+// ─── Company data quality validation ────────────────────────────────────────
 
 interface DataQualityResult {
   isLimitedData: boolean;
@@ -93,7 +117,6 @@ function assessDataQuality(companyData: CompanySearchData): DataQualityResult {
       ? allResults.reduce((sum, r) => sum + (r.score ?? 0), 0) / totalResults
       : 0;
 
-  // Count how many results actually mention the company name (case-insensitive)
   const companyLower = company.toLowerCase();
   const mentionsCompany = allResults.filter(
     (r) =>
@@ -101,7 +124,6 @@ function assessDataQuality(companyData: CompanySearchData): DataQualityResult {
       r.content?.toLowerCase().includes(companyLower)
   ).length;
 
-  // Flag as limited data if any of these thresholds are breached
   if (totalResults < 5) {
     return {
       isLimitedData: true,
@@ -126,14 +148,14 @@ function assessDataQuality(companyData: CompanySearchData): DataQualityResult {
   if (mentionsCompany < 3) {
     return {
       isLimitedData: true,
-      reason: `Fewer than 3 search results directly reference "${company}" — it may be too obscure or not an FMCG market participant.`,
+      reason: `Fewer than 3 search results directly reference "${company}" — it may be too obscure or not a significant market participant.`,
     };
   }
 
   return { isLimitedData: false, reason: "" };
 }
 
-// ─── Profile types ────────────────────────────────────────────────────────────
+// ─── Profile types ──────────────────────────────────────────────────────────
 
 interface SourcedDataPoint {
   value: string;
@@ -170,12 +192,11 @@ function buildLimitedDataProfile(company: string, reason: string): CompanyProfil
   };
 }
 
-// ─── Gemini structuring ───────────────────────────────────────────────────────
+// ─── Gemini structuring ─────────────────────────────────────────────────────
 
 async function structureOneCompany(companyData: CompanySearchData): Promise<CompanyProfile> {
   const { company, results } = companyData;
 
-  // Validate data quality before calling Gemini
   const quality = assessDataQuality(companyData);
   if (quality.isLimitedData) {
     return buildLimitedDataProfile(company, quality.reason);
@@ -191,70 +212,70 @@ async function structureOneCompany(companyData: CompanySearchData): Promise<Comp
     .join("\n\n");
 
   const schema = {
-    type: "object",
+    type: "object" as const,
     properties: {
-      companyName: { type: "string" },
+      companyName: { type: "string" as const },
       businessModel: {
-        type: "object",
+        type: "object" as const,
         properties: {
-          value: { type: "string" },
-          source: { type: "string" },
-          sourceTitle: { type: "string" },
+          value: { type: "string" as const },
+          source: { type: "string" as const },
+          sourceTitle: { type: "string" as const },
         },
         required: ["value", "source", "sourceTitle"],
       },
       productPortfolio: {
-        type: "array",
+        type: "array" as const,
         items: {
-          type: "object",
+          type: "object" as const,
           properties: {
-            value: { type: "string" },
-            source: { type: "string" },
-            sourceTitle: { type: "string" },
+            value: { type: "string" as const },
+            source: { type: "string" as const },
+            sourceTitle: { type: "string" as const },
           },
           required: ["value", "source", "sourceTitle"],
         },
       },
       recentStrategicMoves: {
-        type: "array",
+        type: "array" as const,
         items: {
-          type: "object",
+          type: "object" as const,
           properties: {
-            value: { type: "string" },
-            source: { type: "string" },
-            sourceTitle: { type: "string" },
+            value: { type: "string" as const },
+            source: { type: "string" as const },
+            sourceTitle: { type: "string" as const },
           },
           required: ["value", "source", "sourceTitle"],
         },
       },
       geographicPresence: {
-        type: "object",
+        type: "object" as const,
         properties: {
-          value: { type: "string" },
-          source: { type: "string" },
-          sourceTitle: { type: "string" },
+          value: { type: "string" as const },
+          source: { type: "string" as const },
+          sourceTitle: { type: "string" as const },
         },
         required: ["value", "source", "sourceTitle"],
       },
       pricingPositioning: {
-        type: "object",
+        type: "object" as const,
         properties: {
-          value: { type: "string" },
-          source: { type: "string" },
-          sourceTitle: { type: "string" },
+          value: { type: "string" as const },
+          source: { type: "string" as const },
+          sourceTitle: { type: "string" as const },
         },
         required: ["value", "source", "sourceTitle"],
       },
       keyDifferentiator: {
-        type: "object",
+        type: "object" as const,
         properties: {
-          value: { type: "string" },
-          source: { type: "string" },
-          sourceTitle: { type: "string" },
+          value: { type: "string" as const },
+          source: { type: "string" as const },
+          sourceTitle: { type: "string" as const },
         },
         required: ["value", "source", "sourceTitle"],
       },
-      overallSummary: { type: "string" },
+      overallSummary: { type: "string" as const },
     },
     required: [
       "companyName",
@@ -284,6 +305,8 @@ Instructions:
 
 For every source field: use a real URL that appears in the search results above. If a specific URL fits multiple fields, reuse it.`;
 
+  const ai = getGeminiClient();
+
   const response = await ai.models.generateContent({
     model: "gemini-2.5-flash",
     contents: [{ role: "user", parts: [{ text: prompt }] }],
@@ -300,11 +323,10 @@ For every source field: use a real URL that appears in the search results above.
 }
 
 async function structureWithGemini(companyData: CompanySearchData[]): Promise<CompanyProfile[]> {
-  const profiles = await Promise.all(companyData.map((data) => structureOneCompany(data)));
-  return profiles;
+  return Promise.all(companyData.map((data) => structureOneCompany(data)));
 }
 
-// ─── Routes ───────────────────────────────────────────────────────────────────
+// ─── Routes ─────────────────────────────────────────────────────────────────
 
 router.post("/intelligence/analyze", async (req, res) => {
   const parseResult = AnalyzeCompetitorsBody.safeParse(req.body);
@@ -327,43 +349,34 @@ router.post("/intelligence/analyze", async (req, res) => {
 
   const title = `${companies.slice(0, 3).join(", ")}${companies.length > 3 ? "..." : ""} Analysis`;
 
-  const [report] = await db
-    .insert(reportsTable)
-    .values({
-      title,
-      companies: companies as string[],
-      profiles: profiles as unknown as Record<string, unknown>[],
-    })
-    .returning();
-
-  if (!report) {
-    res.status(500).json({ error: "Failed to save report" });
-    return;
-  }
+  const report: StoredReport = {
+    id: nextId++,
+    title,
+    companies,
+    profiles,
+    createdAt: new Date(),
+  };
+  reports.push(report);
 
   res.json({
     id: report.id,
     title: report.title,
     companies: report.companies,
-    profiles: report.profiles as unknown as CompanyProfile[],
+    profiles: report.profiles,
     createdAt: report.createdAt.toISOString(),
   });
 });
 
-router.get("/intelligence/reports", async (req, res) => {
-  const reports = await db
-    .select({
-      id: reportsTable.id,
-      title: reportsTable.title,
-      companies: reportsTable.companies,
-      createdAt: reportsTable.createdAt,
-    })
-    .from(reportsTable)
-    .orderBy(reportsTable.createdAt);
+router.get("/intelligence/reports", async (_req, res) => {
+  const sorted = [...reports].sort(
+    (a, b) => a.createdAt.getTime() - b.createdAt.getTime()
+  );
 
   res.json(
-    reports.map((r) => ({
-      ...r,
+    sorted.map((r) => ({
+      id: r.id,
+      title: r.title,
+      companies: r.companies,
       createdAt: r.createdAt.toISOString(),
     }))
   );
@@ -376,10 +389,7 @@ router.get("/intelligence/reports/:id", async (req, res) => {
     return;
   }
 
-  const [report] = await db
-    .select()
-    .from(reportsTable)
-    .where(eq(reportsTable.id, id));
+  const report = reports.find((r) => r.id === id);
 
   if (!report) {
     res.status(404).json({ error: "Report not found" });

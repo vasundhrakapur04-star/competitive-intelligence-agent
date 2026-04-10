@@ -10,8 +10,6 @@ services:
     envVars:
       - key: NODE_VERSION
         value: "20"
-      - key: DATABASE_URL
-        sync: false # set manually in Render dashboard
       - key: TAVILY_API_KEY
         sync: false
       - key: GOOGLE_AI_API_KEY
