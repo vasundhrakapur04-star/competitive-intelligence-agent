@@ -75,6 +75,66 @@ async function gatherCompanyData(company: string): Promise<CompanySearchData> {
   return { company, results: allResults };
 }
 
+// ─── Company data quality validation ─────────────────────────────────────────
+
+interface DataQualityResult {
+  isLimitedData: boolean;
+  reason: string;
+}
+
+function assessDataQuality(companyData: CompanySearchData): DataQualityResult {
+  const { company, results } = companyData;
+  const allResults = results.flatMap((r) => r.results);
+
+  const totalResults = allResults.length;
+  const totalChars = allResults.reduce((sum, r) => sum + (r.content?.length ?? 0), 0);
+  const avgScore =
+    totalResults > 0
+      ? allResults.reduce((sum, r) => sum + (r.score ?? 0), 0) / totalResults
+      : 0;
+
+  // Count how many results actually mention the company name (case-insensitive)
+  const companyLower = company.toLowerCase();
+  const mentionsCompany = allResults.filter(
+    (r) =>
+      r.title?.toLowerCase().includes(companyLower) ||
+      r.content?.toLowerCase().includes(companyLower)
+  ).length;
+
+  // Flag as limited data if any of these thresholds are breached
+  if (totalResults < 5) {
+    return {
+      isLimitedData: true,
+      reason: `Only ${totalResults} search results found — insufficient data to build a reliable profile.`,
+    };
+  }
+
+  if (totalChars < 600) {
+    return {
+      isLimitedData: true,
+      reason: `Very little content found across all searches (${totalChars} characters) — this company may not have significant web presence.`,
+    };
+  }
+
+  if (avgScore < 0.25) {
+    return {
+      isLimitedData: true,
+      reason: `Search results had very low relevance scores (avg ${avgScore.toFixed(2)}) — the company may not be a well-known market player.`,
+    };
+  }
+
+  if (mentionsCompany < 3) {
+    return {
+      isLimitedData: true,
+      reason: `Fewer than 3 search results directly reference "${company}" — it may be too obscure or not an FMCG market participant.`,
+    };
+  }
+
+  return { isLimitedData: false, reason: "" };
+}
+
+// ─── Profile types ────────────────────────────────────────────────────────────
+
 interface SourcedDataPoint {
   value: string;
   source: string;
@@ -83,6 +143,8 @@ interface SourcedDataPoint {
 
 interface CompanyProfile {
   companyName: string;
+  limitedData?: boolean;
+  limitedDataReason?: string;
   businessModel: SourcedDataPoint;
   productPortfolio: SourcedDataPoint[];
   recentStrategicMoves: SourcedDataPoint[];
@@ -92,8 +154,32 @@ interface CompanyProfile {
   overallSummary: string;
 }
 
+function buildLimitedDataProfile(company: string, reason: string): CompanyProfile {
+  const stub: SourcedDataPoint = { value: "Insufficient data", source: "", sourceTitle: "" };
+  return {
+    companyName: company,
+    limitedData: true,
+    limitedDataReason: reason,
+    businessModel: stub,
+    productPortfolio: [stub],
+    recentStrategicMoves: [stub],
+    geographicPresence: stub,
+    pricingPositioning: stub,
+    keyDifferentiator: stub,
+    overallSummary: "Insufficient data found to generate a meaningful profile.",
+  };
+}
+
+// ─── Gemini structuring ───────────────────────────────────────────────────────
+
 async function structureOneCompany(companyData: CompanySearchData): Promise<CompanyProfile> {
   const { company, results } = companyData;
+
+  // Validate data quality before calling Gemini
+  const quality = assessDataQuality(companyData);
+  if (quality.isLimitedData) {
+    return buildLimitedDataProfile(company, quality.reason);
+  }
 
   const contextText = results
     .map(
@@ -214,10 +300,11 @@ For every source field: use a real URL that appears in the search results above.
 }
 
 async function structureWithGemini(companyData: CompanySearchData[]): Promise<CompanyProfile[]> {
-  // Process each company in a separate Gemini call to avoid token limit truncation
   const profiles = await Promise.all(companyData.map((data) => structureOneCompany(data)));
   return profiles;
 }
+
+// ─── Routes ───────────────────────────────────────────────────────────────────
 
 router.post("/intelligence/analyze", async (req, res) => {
   const parseResult = AnalyzeCompetitorsBody.safeParse(req.body);
@@ -234,7 +321,7 @@ router.post("/intelligence/analyze", async (req, res) => {
     companies.map((company) => gatherCompanyData(company))
   );
 
-  req.log.info("Web search complete, structuring with Gemini");
+  req.log.info("Web search complete, validating companies and structuring with Gemini");
 
   const profiles = await structureWithGemini(companyDataArray);
 

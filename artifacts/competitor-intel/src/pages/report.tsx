@@ -2,7 +2,7 @@ import { useParams, useLocation } from "wouter";
 import { useGetReport, getGetReportQueryKey } from "@workspace/api-client-react";
 import {
   ArrowLeft, ExternalLink, Building2, Package, TrendingUp,
-  Globe, Tag, Star, FileText, Calendar, Zap, BarChart3
+  Globe, Tag, Star, FileText, Calendar, Zap, BarChart3, AlertTriangle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -17,6 +17,8 @@ interface SourcedDataPoint {
 
 interface CompanyProfile {
   companyName: string;
+  limitedData?: boolean;
+  limitedDataReason?: string;
   businessModel: SourcedDataPoint;
   productPortfolio: SourcedDataPoint[];
   recentStrategicMoves: SourcedDataPoint[];
@@ -136,16 +138,27 @@ const COMPANY_COLORS = [
 ];
 
 function ComparisonTable({ profiles }: { profiles: CompanyProfile[] }) {
+  function UnverifiedCell() {
+    return (
+      <span className="inline-flex items-center gap-1 text-xs text-amber-600 font-medium">
+        <AlertTriangle className="w-3 h-3" />
+        Unverified
+      </span>
+    );
+  }
+
   const dimensions = [
     {
       label: "Pricing Tier",
       icon: Tag,
-      render: (p: CompanyProfile) => <PricingBadge text={p.pricingPositioning.value} />,
+      render: (p: CompanyProfile) =>
+        p.limitedData ? <UnverifiedCell /> : <PricingBadge text={p.pricingPositioning.value} />,
     },
     {
       label: "Key Geography",
       icon: Globe,
       render: (p: CompanyProfile) => {
+        if (p.limitedData) return <UnverifiedCell />;
         const geo = p.geographicPresence.value;
         const parts = geo.split(/[,;]/);
         return <span className="text-xs text-slate-600">{parts.slice(0, 2).join(", ")}</span>;
@@ -155,6 +168,7 @@ function ComparisonTable({ profiles }: { profiles: CompanyProfile[] }) {
       label: "Top Category",
       icon: Package,
       render: (p: CompanyProfile) => {
+        if (p.limitedData) return <UnverifiedCell />;
         const top = p.productPortfolio[0];
         if (!top) return null;
         const name = top.value.split(/[,.:]/)[0].slice(0, 35);
@@ -165,6 +179,7 @@ function ComparisonTable({ profiles }: { profiles: CompanyProfile[] }) {
       label: "Key Differentiator",
       icon: Star,
       render: (p: CompanyProfile) => {
+        if (p.limitedData) return <UnverifiedCell />;
         const val = p.keyDifferentiator.value.split(".")[0].slice(0, 55);
         return <span className="text-xs text-slate-600">{val}</span>;
       },
@@ -218,6 +233,25 @@ function SnapshotSection({ profiles }: { profiles: CompanyProfile[] }) {
     <div className="grid gap-4" style={{ gridTemplateColumns: `repeat(${Math.min(profiles.length, 5)}, minmax(0, 1fr))` }} data-testid="snapshot-grid">
       {profiles.map((profile, i) => {
         const color = COMPANY_COLORS[i % COMPANY_COLORS.length];
+
+        if (profile.limitedData) {
+          return (
+            <div key={i} className="rounded-xl border p-4 bg-amber-50 border-amber-200">
+              <div className="flex items-center gap-2 mb-3">
+                <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />
+                <span className="text-sm font-bold text-amber-800">{profile.companyName}</span>
+              </div>
+              <p className="text-xs text-amber-700 leading-relaxed">Limited data — may not be a significant market player.</p>
+              <div className="mt-3">
+                <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full border bg-amber-100 text-amber-700 border-amber-200">
+                  <AlertTriangle className="w-3 h-3" />
+                  Unverified
+                </span>
+              </div>
+            </div>
+          );
+        }
+
         return (
           <div key={i} className={`rounded-xl border p-4 ${color.bg} ${color.border}`}>
             <div className="flex items-center gap-2 mb-3">
@@ -235,6 +269,43 @@ function SnapshotSection({ profiles }: { profiles: CompanyProfile[] }) {
   );
 }
 
+function LimitedDataCard({ profile, index }: { profile: CompanyProfile; index: number }) {
+  const color = COMPANY_COLORS[index % COMPANY_COLORS.length];
+  return (
+    <div
+      className={`rounded-xl border bg-white shadow-sm overflow-hidden border-amber-200`}
+      data-testid={`card-limited-${index}`}
+    >
+      <div className="h-1.5 w-full bg-amber-400" />
+      <div className="px-5 py-4 border-b border-amber-100 flex items-center justify-between">
+        <h3 className={`text-base font-bold ${color.text}`}>{profile.companyName}</h3>
+        <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full border bg-amber-100 text-amber-700 border-amber-200">
+          <AlertTriangle className="w-3 h-3" />
+          Limited Data
+        </span>
+      </div>
+      <div className="p-5">
+        <div className="flex items-start gap-3 p-4 rounded-lg bg-amber-50 border border-amber-200">
+          <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+          <div className="space-y-1.5">
+            <p className="text-sm font-semibold text-amber-800">
+              Limited data found — this may not be a significant market player.
+            </p>
+            <p className="text-sm text-amber-700">
+              Results may be unreliable.
+            </p>
+            {profile.limitedDataReason && (
+              <p className="text-xs text-amber-600 mt-2 pt-2 border-t border-amber-200">
+                <span className="font-medium">Reason: </span>{profile.limitedDataReason}
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function SectionHeader({ icon: Icon, label }: { icon: React.ComponentType<{ className?: string }>; label: string }) {
   return (
     <div className="flex items-center gap-2 mb-3 pb-2 border-b border-slate-100">
@@ -247,6 +318,10 @@ function SectionHeader({ icon: Icon, label }: { icon: React.ComponentType<{ clas
 }
 
 function CompanyCard({ profile, index }: { profile: CompanyProfile; index: number }) {
+  if (profile.limitedData) {
+    return <LimitedDataCard profile={profile} index={index} />;
+  }
+
   const color = COMPANY_COLORS[index % COMPANY_COLORS.length];
   return (
     <div className={`rounded-xl border bg-white shadow-sm overflow-hidden ${color.border}`} data-testid={`card-company-${index}`}>
