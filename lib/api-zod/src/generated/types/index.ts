@@ -6,4 +6,10 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from "./analyzeCompetitorsBody";
+export * from "./apiError";
+export * from "./companyProfile";
 export * from "./healthStatus";
+export * from "./intelligenceReport";
+export * from "./reportSummary";
+export * from "./sourcedDataPoint";

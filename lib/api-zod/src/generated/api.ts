@@ -14,3 +14,167 @@ import * as zod from "zod";
 export const HealthCheckResponse = zod.object({
   status: zod.string(),
 });
+
+/**
+ * Searches the web for real data on given FMCG companies and returns structured intelligence dashboards using AI
+ * @summary Analyze FMCG competitors
+ */
+export const analyzeCompetitorsBodyCompaniesMin = 3;
+export const analyzeCompetitorsBodyCompaniesMax = 5;
+
+export const AnalyzeCompetitorsBody = zod.object({
+  companies: zod
+    .array(zod.string())
+    .min(analyzeCompetitorsBodyCompaniesMin)
+    .max(analyzeCompetitorsBodyCompaniesMax)
+    .describe("List of 3-5 FMCG company names to analyze"),
+});
+
+export const AnalyzeCompetitorsResponse = zod.object({
+  id: zod.number(),
+  companies: zod.array(zod.string()),
+  profiles: zod.array(
+    zod.object({
+      companyName: zod.string(),
+      businessModel: zod.object({
+        value: zod.string().describe("The data point value"),
+        source: zod.string().describe("Source URL for this data point"),
+        sourceTitle: zod
+          .string()
+          .optional()
+          .describe("Title or description of the source"),
+      }),
+      productPortfolio: zod.array(
+        zod.object({
+          value: zod.string().describe("The data point value"),
+          source: zod.string().describe("Source URL for this data point"),
+          sourceTitle: zod
+            .string()
+            .optional()
+            .describe("Title or description of the source"),
+        }),
+      ),
+      recentStrategicMoves: zod.array(
+        zod.object({
+          value: zod.string().describe("The data point value"),
+          source: zod.string().describe("Source URL for this data point"),
+          sourceTitle: zod
+            .string()
+            .optional()
+            .describe("Title or description of the source"),
+        }),
+      ),
+      geographicPresence: zod.object({
+        value: zod.string().describe("The data point value"),
+        source: zod.string().describe("Source URL for this data point"),
+        sourceTitle: zod
+          .string()
+          .optional()
+          .describe("Title or description of the source"),
+      }),
+      pricingPositioning: zod.object({
+        value: zod.string().describe("The data point value"),
+        source: zod.string().describe("Source URL for this data point"),
+        sourceTitle: zod
+          .string()
+          .optional()
+          .describe("Title or description of the source"),
+      }),
+      keyDifferentiator: zod.object({
+        value: zod.string().describe("The data point value"),
+        source: zod.string().describe("Source URL for this data point"),
+        sourceTitle: zod
+          .string()
+          .optional()
+          .describe("Title or description of the source"),
+      }),
+      overallSummary: zod.string(),
+    }),
+  ),
+  createdAt: zod.coerce.date(),
+  title: zod.string(),
+});
+
+/**
+ * Returns all previously generated intelligence reports
+ * @summary List saved intelligence reports
+ */
+export const ListReportsResponseItem = zod.object({
+  id: zod.number(),
+  title: zod.string(),
+  companies: zod.array(zod.string()),
+  createdAt: zod.coerce.date(),
+});
+export const ListReportsResponse = zod.array(ListReportsResponseItem);
+
+/**
+ * @summary Get a specific report by ID
+ */
+export const GetReportParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetReportResponse = zod.object({
+  id: zod.number(),
+  companies: zod.array(zod.string()),
+  profiles: zod.array(
+    zod.object({
+      companyName: zod.string(),
+      businessModel: zod.object({
+        value: zod.string().describe("The data point value"),
+        source: zod.string().describe("Source URL for this data point"),
+        sourceTitle: zod
+          .string()
+          .optional()
+          .describe("Title or description of the source"),
+      }),
+      productPortfolio: zod.array(
+        zod.object({
+          value: zod.string().describe("The data point value"),
+          source: zod.string().describe("Source URL for this data point"),
+          sourceTitle: zod
+            .string()
+            .optional()
+            .describe("Title or description of the source"),
+        }),
+      ),
+      recentStrategicMoves: zod.array(
+        zod.object({
+          value: zod.string().describe("The data point value"),
+          source: zod.string().describe("Source URL for this data point"),
+          sourceTitle: zod
+            .string()
+            .optional()
+            .describe("Title or description of the source"),
+        }),
+      ),
+      geographicPresence: zod.object({
+        value: zod.string().describe("The data point value"),
+        source: zod.string().describe("Source URL for this data point"),
+        sourceTitle: zod
+          .string()
+          .optional()
+          .describe("Title or description of the source"),
+      }),
+      pricingPositioning: zod.object({
+        value: zod.string().describe("The data point value"),
+        source: zod.string().describe("Source URL for this data point"),
+        sourceTitle: zod
+          .string()
+          .optional()
+          .describe("Title or description of the source"),
+      }),
+      keyDifferentiator: zod.object({
+        value: zod.string().describe("The data point value"),
+        source: zod.string().describe("Source URL for this data point"),
+        sourceTitle: zod
+          .string()
+          .optional()
+          .describe("Title or description of the source"),
+      }),
+      overallSummary: zod.string(),
+    }),
+  ),
+  createdAt: zod.coerce.date(),
+  title: zod.string(),
+});

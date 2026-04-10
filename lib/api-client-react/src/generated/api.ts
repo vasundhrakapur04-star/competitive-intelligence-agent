@@ -5,18 +5,27 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import type {
+  MutationFunction,
   QueryFunction,
   QueryKey,
+  UseMutationOptions,
+  UseMutationResult,
   UseQueryOptions,
   UseQueryResult,
 } from "@tanstack/react-query";
 
-import type { HealthStatus } from "./api.schemas";
+import type {
+  AnalyzeCompetitorsBody,
+  ApiError,
+  HealthStatus,
+  IntelligenceReport,
+  ReportSummary,
+} from "./api.schemas";
 
 import { customFetch } from "../custom-fetch";
-import type { ErrorType } from "../custom-fetch";
+import type { ErrorType, BodyType } from "../custom-fetch";
 
 type AwaitedInput<T> = PromiseLike<T> | T;
 
@@ -92,6 +101,254 @@ export function useHealthCheck<
   request?: SecondParameter<typeof customFetch>;
 }): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getHealthCheckQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * Searches the web for real data on given FMCG companies and returns structured intelligence dashboards using AI
+ * @summary Analyze FMCG competitors
+ */
+export const getAnalyzeCompetitorsUrl = () => {
+  return `/api/intelligence/analyze`;
+};
+
+export const analyzeCompetitors = async (
+  analyzeCompetitorsBody: AnalyzeCompetitorsBody,
+  options?: RequestInit,
+): Promise<IntelligenceReport> => {
+  return customFetch<IntelligenceReport>(getAnalyzeCompetitorsUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(analyzeCompetitorsBody),
+  });
+};
+
+export const getAnalyzeCompetitorsMutationOptions = <
+  TError = ErrorType<ApiError>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof analyzeCompetitors>>,
+    TError,
+    { data: BodyType<AnalyzeCompetitorsBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof analyzeCompetitors>>,
+  TError,
+  { data: BodyType<AnalyzeCompetitorsBody> },
+  TContext
+> => {
+  const mutationKey = ["analyzeCompetitors"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof analyzeCompetitors>>,
+    { data: BodyType<AnalyzeCompetitorsBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return analyzeCompetitors(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AnalyzeCompetitorsMutationResult = NonNullable<
+  Awaited<ReturnType<typeof analyzeCompetitors>>
+>;
+export type AnalyzeCompetitorsMutationBody = BodyType<AnalyzeCompetitorsBody>;
+export type AnalyzeCompetitorsMutationError = ErrorType<ApiError>;
+
+/**
+ * @summary Analyze FMCG competitors
+ */
+export const useAnalyzeCompetitors = <
+  TError = ErrorType<ApiError>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof analyzeCompetitors>>,
+    TError,
+    { data: BodyType<AnalyzeCompetitorsBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof analyzeCompetitors>>,
+  TError,
+  { data: BodyType<AnalyzeCompetitorsBody> },
+  TContext
+> => {
+  return useMutation(getAnalyzeCompetitorsMutationOptions(options));
+};
+
+/**
+ * Returns all previously generated intelligence reports
+ * @summary List saved intelligence reports
+ */
+export const getListReportsUrl = () => {
+  return `/api/intelligence/reports`;
+};
+
+export const listReports = async (
+  options?: RequestInit,
+): Promise<ReportSummary[]> => {
+  return customFetch<ReportSummary[]>(getListReportsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListReportsQueryKey = () => {
+  return [`/api/intelligence/reports`] as const;
+};
+
+export const getListReportsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listReports>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listReports>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListReportsQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listReports>>> = ({
+    signal,
+  }) => listReports({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listReports>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListReportsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listReports>>
+>;
+export type ListReportsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List saved intelligence reports
+ */
+
+export function useListReports<
+  TData = Awaited<ReturnType<typeof listReports>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listReports>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListReportsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Get a specific report by ID
+ */
+export const getGetReportUrl = (id: number) => {
+  return `/api/intelligence/reports/${id}`;
+};
+
+export const getReport = async (
+  id: number,
+  options?: RequestInit,
+): Promise<IntelligenceReport> => {
+  return customFetch<IntelligenceReport>(getGetReportUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetReportQueryKey = (id: number) => {
+  return [`/api/intelligence/reports/${id}`] as const;
+};
+
+export const getGetReportQueryOptions = <
+  TData = Awaited<ReturnType<typeof getReport>>,
+  TError = ErrorType<ApiError>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getReport>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetReportQueryKey(id);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getReport>>> = ({
+    signal,
+  }) => getReport(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof getReport>>, TError, TData> & {
+    queryKey: QueryKey;
+  };
+};
+
+export type GetReportQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getReport>>
+>;
+export type GetReportQueryError = ErrorType<ApiError>;
+
+/**
+ * @summary Get a specific report by ID
+ */
+
+export function useGetReport<
+  TData = Awaited<ReturnType<typeof getReport>>,
+  TError = ErrorType<ApiError>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getReport>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetReportQueryOptions(id, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

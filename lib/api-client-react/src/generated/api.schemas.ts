@@ -8,3 +8,51 @@
 export interface HealthStatus {
   status: string;
 }
+
+export interface ApiError {
+  error: string;
+}
+
+export interface AnalyzeCompetitorsBody {
+  /**
+   * List of 3-5 FMCG company names to analyze
+   * @minItems 3
+   * @maxItems 5
+   */
+  companies: string[];
+}
+
+export interface SourcedDataPoint {
+  /** The data point value */
+  value: string;
+  /** Source URL for this data point */
+  source: string;
+  /** Title or description of the source */
+  sourceTitle?: string;
+}
+
+export interface CompanyProfile {
+  companyName: string;
+  businessModel: SourcedDataPoint;
+  productPortfolio: SourcedDataPoint[];
+  recentStrategicMoves: SourcedDataPoint[];
+  geographicPresence: SourcedDataPoint;
+  pricingPositioning: SourcedDataPoint;
+  keyDifferentiator: SourcedDataPoint;
+  overallSummary: string;
+}
+
+export interface IntelligenceReport {
+  id: number;
+  companies: string[];
+  profiles: CompanyProfile[];
+  createdAt: string;
+  title: string;
+}
+
+export interface ReportSummary {
+  id: number;
+  title: string;
+  companies: string[];
+  createdAt: string;
+}

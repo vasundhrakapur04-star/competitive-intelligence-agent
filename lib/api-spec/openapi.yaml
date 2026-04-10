@@ -10,6 +10,8 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: intelligence
+    description: Competitor intelligence analysis operations
 paths:
   /healthz:
     get:
@@ -24,6 +26,80 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /intelligence/analyze:
+    post:
+      operationId: analyzeCompetitors
+      tags: [intelligence]
+      summary: Analyze FMCG competitors
+      description: Searches the web for real data on given FMCG companies and returns structured intelligence dashboards using AI
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AnalyzeCompetitorsBody"
+      responses:
+        "200":
+          description: Competitor intelligence results
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IntelligenceReport"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /intelligence/reports:
+    get:
+      operationId: listReports
+      tags: [intelligence]
+      summary: List saved intelligence reports
+      description: Returns all previously generated intelligence reports
+      responses:
+        "200":
+          description: List of reports
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ReportSummary"
+
+  /intelligence/reports/{id}:
+    get:
+      operationId: getReport
+      tags: [intelligence]
+      summary: Get a specific report by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Report details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IntelligenceReport"
+        "404":
+          description: Report not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +110,117 @@ components:
       required:
         - status
 
+    ApiError:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+
+    AnalyzeCompetitorsBody:
+      type: object
+      properties:
+        companies:
+          type: array
+          items:
+            type: string
+          minItems: 3
+          maxItems: 5
+          description: List of 3-5 FMCG company names to analyze
+      required:
+        - companies
+
+    SourcedDataPoint:
+      type: object
+      properties:
+        value:
+          type: string
+          description: The data point value
+        source:
+          type: string
+          description: Source URL for this data point
+        sourceTitle:
+          type: string
+          description: Title or description of the source
+      required:
+        - value
+        - source
+
+    CompanyProfile:
+      type: object
+      properties:
+        companyName:
+          type: string
+        businessModel:
+          $ref: "#/components/schemas/SourcedDataPoint"
+        productPortfolio:
+          type: array
+          items:
+            $ref: "#/components/schemas/SourcedDataPoint"
+        recentStrategicMoves:
+          type: array
+          items:
+            $ref: "#/components/schemas/SourcedDataPoint"
+        geographicPresence:
+          $ref: "#/components/schemas/SourcedDataPoint"
+        pricingPositioning:
+          $ref: "#/components/schemas/SourcedDataPoint"
+        keyDifferentiator:
+          $ref: "#/components/schemas/SourcedDataPoint"
+        overallSummary:
+          type: string
+      required:
+        - companyName
+        - businessModel
+        - productPortfolio
+        - recentStrategicMoves
+        - geographicPresence
+        - pricingPositioning
+        - keyDifferentiator
+        - overallSummary
+
+    IntelligenceReport:
+      type: object
+      properties:
+        id:
+          type: integer
+        companies:
+          type: array
+          items:
+            type: string
+        profiles:
+          type: array
+          items:
+            $ref: "#/components/schemas/CompanyProfile"
+        createdAt:
+          type: string
+          format: date-time
+        title:
+          type: string
+      required:
+        - id
+        - companies
+        - profiles
+        - createdAt
+        - title
+
+    ReportSummary:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        companies:
+          type: array
+          items:
+            type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - title
+        - companies
+        - createdAt
