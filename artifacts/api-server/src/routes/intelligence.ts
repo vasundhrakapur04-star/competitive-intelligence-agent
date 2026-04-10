@@ -92,87 +92,131 @@ interface CompanyProfile {
   overallSummary: string;
 }
 
-async function structureWithGemini(companyData: CompanySearchData[]): Promise<CompanyProfile[]> {
-  const contextText = companyData
-    .map(({ company, results }) => {
-      const sections = results
-        .map(
-          ({ query, results: res }) =>
-            `Query: ${query}\nResults:\n${res
-              .map((r) => `- [${r.title}](${r.url}): ${r.content.slice(0, 400)}`)
-              .join("\n")}`
-        )
-        .join("\n\n");
-      return `=== ${company} ===\n${sections}`;
-    })
-    .join("\n\n---\n\n");
+async function structureOneCompany(companyData: CompanySearchData): Promise<CompanyProfile> {
+  const { company, results } = companyData;
 
-  const prompt = `You are a senior FMCG industry analyst. Based on the following web search results, create structured competitive intelligence profiles for each company.
+  const contextText = results
+    .map(
+      ({ query, results: res }) =>
+        `Query: ${query}\nSources:\n${res
+          .map((r) => `- URL: ${r.url}\n  Title: ${r.title}\n  Snippet: ${r.content.slice(0, 250)}`)
+          .join("\n")}`
+    )
+    .join("\n\n");
 
-For each company, extract and structure the following dimensions. For each data point, you MUST provide a real source URL from the search results provided.
+  const schema = {
+    type: "object",
+    properties: {
+      companyName: { type: "string" },
+      businessModel: {
+        type: "object",
+        properties: {
+          value: { type: "string" },
+          source: { type: "string" },
+          sourceTitle: { type: "string" },
+        },
+        required: ["value", "source", "sourceTitle"],
+      },
+      productPortfolio: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            value: { type: "string" },
+            source: { type: "string" },
+            sourceTitle: { type: "string" },
+          },
+          required: ["value", "source", "sourceTitle"],
+        },
+      },
+      recentStrategicMoves: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            value: { type: "string" },
+            source: { type: "string" },
+            sourceTitle: { type: "string" },
+          },
+          required: ["value", "source", "sourceTitle"],
+        },
+      },
+      geographicPresence: {
+        type: "object",
+        properties: {
+          value: { type: "string" },
+          source: { type: "string" },
+          sourceTitle: { type: "string" },
+        },
+        required: ["value", "source", "sourceTitle"],
+      },
+      pricingPositioning: {
+        type: "object",
+        properties: {
+          value: { type: "string" },
+          source: { type: "string" },
+          sourceTitle: { type: "string" },
+        },
+        required: ["value", "source", "sourceTitle"],
+      },
+      keyDifferentiator: {
+        type: "object",
+        properties: {
+          value: { type: "string" },
+          source: { type: "string" },
+          sourceTitle: { type: "string" },
+        },
+        required: ["value", "source", "sourceTitle"],
+      },
+      overallSummary: { type: "string" },
+    },
+    required: [
+      "companyName",
+      "businessModel",
+      "productPortfolio",
+      "recentStrategicMoves",
+      "geographicPresence",
+      "pricingPositioning",
+      "keyDifferentiator",
+      "overallSummary",
+    ],
+  };
+
+  const prompt = `You are a senior FMCG analyst. Based on the following web search results for ${company}, produce a structured competitive intelligence profile.
 
 ${contextText}
 
-Return a JSON array of company profiles. Each profile must match this exact structure:
-{
-  "companyName": "string",
-  "businessModel": {
-    "value": "Clear 2-3 sentence description of their core business model",
-    "source": "actual URL from the search results",
-    "sourceTitle": "title of the source article/page"
-  },
-  "productPortfolio": [
-    {
-      "value": "Description of a major product category or brand",
-      "source": "actual URL from the search results",
-      "sourceTitle": "title of the source"
-    }
-  ],
-  "recentStrategicMoves": [
-    {
-      "value": "Description of a specific strategic move (acquisition, partnership, launch, etc.) with approximate date",
-      "source": "actual URL from the search results",
-      "sourceTitle": "title of the source"
-    }
-  ],
-  "geographicPresence": {
-    "value": "Description of key markets, regions, and international footprint",
-    "source": "actual URL from the search results",
-    "sourceTitle": "title of the source"
-  },
-  "pricingPositioning": {
-    "value": "Description of their pricing strategy and market positioning (premium, mass market, value, etc.)",
-    "source": "actual URL from the search results",
-    "sourceTitle": "title of the source"
-  },
-  "keyDifferentiator": {
-    "value": "Their single most important competitive differentiator",
-    "source": "actual URL from the search results",
-    "sourceTitle": "title of the source"
-  },
-  "overallSummary": "A 2-3 sentence executive summary of this company's competitive position"
-}
+Instructions:
+- companyName: "${company}"
+- businessModel.value: 2-3 sentence description of their core business model
+- productPortfolio: 3-5 key product categories or brands (each with source URL from the results)
+- recentStrategicMoves: 2-3 specific moves from 2023-2025 (acquisitions, launches, partnerships) with dates
+- geographicPresence.value: key markets and international footprint
+- pricingPositioning.value: pricing tier and market positioning (premium/mass-market/value)
+- keyDifferentiator.value: their single most important competitive edge
+- overallSummary: 2-sentence executive summary
 
-Rules:
-- Use ONLY URLs that actually appear in the search results provided above
-- If you cannot find a specific data point, use the best available source and note the limitation in the value field
-- productPortfolio should have 3-6 items
-- recentStrategicMoves should have 2-4 items
-- Be specific and factual, not generic
-- Return only valid JSON, no markdown code blocks`;
+For every source field: use a real URL that appears in the search results above. If a specific URL fits multiple fields, reuse it.`;
 
   const response = await ai.models.generateContent({
     model: "gemini-2.5-flash",
     contents: [{ role: "user", parts: [{ text: prompt }] }],
     config: {
       responseMimeType: "application/json",
+      responseSchema: schema,
       maxOutputTokens: 8192,
     },
   });
 
-  const text = response.text ?? "[]";
+  const text = response.text ?? "{}";
   const cleaned = text.replace(/^```json\s*/, "").replace(/\s*```$/, "").trim();
-  return JSON.parse(cleaned) as CompanyProfile[];
+  return JSON.parse(cleaned) as CompanyProfile;
+}
+
+async function structureWithGemini(companyData: CompanySearchData[]): Promise<CompanyProfile[]> {
+  // Process each company in a separate Gemini call to avoid token limit truncation
+  const profiles = await Promise.all(companyData.map((data) => structureOneCompany(data)));
+  return profiles;
 }
 
 router.post("/intelligence/analyze", async (req, res) => {
