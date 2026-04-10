@@ -138,6 +138,20 @@ function toBullets(text: string): string[] {
     .filter((s) => s.length > 4);
 }
 
+/** Wrap quantitative figures (numbers, percentages, dollar amounts) in bold */
+function boldQuantities(text: string): React.ReactNode {
+  const pattern = /(\$?\d[\d,]*\.?\d*\s*(?:%|percent|billion|million|trillion|thousand|hundred|lakh|crore|bn|mn|cr|bps)?)/gi;
+  const parts = text.split(pattern);
+  if (parts.length === 1) return text;
+  return parts.map((part, i) =>
+    i % 2 === 1 ? (
+      <strong key={i} className="font-semibold text-slate-900">{part}</strong>
+    ) : (
+      part
+    )
+  );
+}
+
 function BulletList({ items }: { items: SourcedDataPoint[] }) {
   return (
     <ul className="space-y-2">
@@ -145,7 +159,7 @@ function BulletList({ items }: { items: SourcedDataPoint[] }) {
         <li key={idx} className="flex items-start gap-2.5 text-sm text-slate-600">
           <span className="mt-2 w-1 h-1 rounded-full bg-slate-300 shrink-0" />
           <span className="flex-1 leading-relaxed">
-            {item.value}
+            {boldQuantities(item.value)}
             <SourceLink source={item.source} sourceTitle={item.sourceTitle} />
           </span>
         </li>
@@ -162,7 +176,7 @@ function SingleBullet({ data }: { data: SourcedDataPoint }) {
         <li className="flex items-start gap-2.5 text-sm text-slate-600">
           <span className="mt-2 w-1 h-1 rounded-full bg-slate-300 shrink-0" />
           <span className="leading-relaxed">
-            {data.value}
+            {boldQuantities(data.value)}
             <SourceLink source={data.source} sourceTitle={data.sourceTitle} />
           </span>
         </li>
@@ -175,7 +189,7 @@ function SingleBullet({ data }: { data: SourcedDataPoint }) {
         <li key={i} className="flex items-start gap-2.5 text-sm text-slate-600">
           <span className="mt-2 w-1 h-1 rounded-full bg-slate-300 shrink-0" />
           <span className="leading-relaxed">
-            {b}
+            {boldQuantities(b)}
             {i === bullets.length - 1 && (
               <SourceLink source={data.source} sourceTitle={data.sourceTitle} />
             )}
@@ -233,7 +247,7 @@ function ComparisonTable({ profiles }: { profiles: CompanyProfile[] }) {
         const parts = geo.split(/[,;]/);
         return (
           <span className="text-xs text-slate-600">
-            {parts.slice(0, 2).join(", ")}
+            {boldQuantities(parts.slice(0, 2).join(", "))}
           </span>
         );
       },
@@ -257,7 +271,7 @@ function ComparisonTable({ profiles }: { profiles: CompanyProfile[] }) {
       render: (p: CompanyProfile) => {
         if (p.limitedData) return <UnverifiedCell />;
         const val = p.keyDifferentiator.value.split(".")[0].trim();
-        return <span className="text-xs text-slate-600">{val}</span>;
+        return <span className="text-xs text-slate-600">{boldQuantities(val)}</span>;
       },
     },
   ];
@@ -382,9 +396,14 @@ function SnapshotSection({ profiles }: { profiles: CompanyProfile[] }) {
                 {profile.companyName}
               </span>
             </div>
-            <p className="text-xs text-slate-500 leading-relaxed mb-3">
-              {profile.overallSummary}
-            </p>
+            <ul className="space-y-1 mb-3">
+              {toBullets(profile.overallSummary).map((b, bi) => (
+                <li key={bi} className="flex items-start gap-2 text-xs text-slate-500">
+                  <span className="mt-1.5 w-1 h-1 rounded-full bg-slate-300 shrink-0" />
+                  <span className="leading-relaxed">{boldQuantities(b)}</span>
+                </li>
+              ))}
+            </ul>
             <PricingBadge text={profile.pricingPositioning.value} />
           </div>
         );
