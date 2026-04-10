@@ -25,10 +25,10 @@ const formSchema = z.object({
   companies: z
     .array(
       z.object({
-        name: z.string().min(2, "Company name must be at least 2 characters."),
+        name: z.string().min(1, "Company name is required."),
       })
     )
-    .min(3, "You must provide at least 3 companies.")
+    .min(1, "You must provide at least 1 company.")
     .max(5, "You can provide at most 5 companies."),
 });
 
@@ -42,7 +42,7 @@ export default function Home() {
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      companies: [{ name: "" }, { name: "" }, { name: "" }],
+      companies: [{ name: "" }, { name: "" }],
     },
   });
 
@@ -76,14 +76,14 @@ export default function Home() {
           <div className="space-y-4">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-mono uppercase tracking-wider border border-primary/20">
               <span className="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
-              CIA - Competitor Intelligence Agent
+              Competitive Intelligence Agent
             </div>
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-foreground">
               Precision Benchmarking. <br className="hidden md:block" />
               <span className="text-muted-foreground">Zero Guesswork.</span>
             </h1>
             <p className="text-lg text-muted-foreground max-w-2xl">
-              Enter 3 to 5 FMCG competitors to generate a deep-dive intelligence brief. 
+              Enter up to 5 companies from any industry to generate a deep-dive intelligence brief.
               Our agent sources real-time data on business models, strategic moves, and product portfolios.
             </p>
           </div>
@@ -122,16 +122,17 @@ export default function Home() {
                                   <Input
                                     {...field}
                                     placeholder={
-                                      index === 0 ? "e.g. Unilever" : 
-                                      index === 1 ? "e.g. Procter & Gamble" : 
-                                      index === 2 ? "e.g. Nestle" : "Company Name"
+                                      index === 0 ? "e.g. Apple" :
+                                      index === 1 ? "e.g. Samsung" :
+                                      index === 2 ? "e.g. Sony" :
+                                      index === 3 ? "e.g. LG" : "e.g. Xiaomi"
                                     }
                                     className="pl-9 bg-background border-muted h-12 text-base font-medium placeholder:font-normal focus-visible:ring-primary"
                                     data-testid={`input-company-${index}`}
                                   />
                                 </FormControl>
                               </div>
-                              {fields.length > 3 && (
+                              {fields.length > 1 && (
                                 <Button
                                   type="button"
                                   variant="ghost"

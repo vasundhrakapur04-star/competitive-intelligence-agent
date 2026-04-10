@@ -19,7 +19,7 @@ export const HealthCheckResponse = zod.object({
  * Searches the web for real data on given FMCG companies and returns structured intelligence dashboards using AI
  * @summary Analyze FMCG competitors
  */
-export const analyzeCompetitorsBodyCompaniesMin = 3;
+export const analyzeCompetitorsBodyCompaniesMin = 1;
 export const analyzeCompetitorsBodyCompaniesMax = 5;
 
 export const AnalyzeCompetitorsBody = zod.object({
@@ -27,7 +27,7 @@ export const AnalyzeCompetitorsBody = zod.object({
     .array(zod.string())
     .min(analyzeCompetitorsBodyCompaniesMin)
     .max(analyzeCompetitorsBodyCompaniesMax)
-    .describe("List of 3-5 FMCG company names to analyze"),
+    .describe("List of 1-5 company names to analyze"),
 });
 
 export const AnalyzeCompetitorsResponse = zod.object({

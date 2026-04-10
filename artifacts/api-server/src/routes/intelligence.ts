@@ -57,12 +57,12 @@ interface CompanySearchData {
 
 async function gatherCompanyData(company: string): Promise<CompanySearchData> {
   const queries = [
-    `${company} FMCG business model revenue strategy 2024`,
+    `${company} business model revenue strategy 2024`,
     `${company} product portfolio brands categories`,
     `${company} recent acquisitions partnerships strategic moves 2024 2025`,
     `${company} geographic presence markets countries`,
-    `${company} pricing strategy premium mass market positioning`,
-    `${company} competitive advantage differentiator`,
+    `${company} pricing strategy market positioning`,
+    `${company} competitive advantage key differentiator`,
   ];
 
   const allResults = await Promise.all(
@@ -268,7 +268,7 @@ async function structureOneCompany(companyData: CompanySearchData): Promise<Comp
     ],
   };
 
-  const prompt = `You are a senior FMCG analyst. Based on the following web search results for ${company}, produce a structured competitive intelligence profile.
+  const prompt = `You are a senior competitive intelligence analyst. Based on the following web search results for ${company}, produce a structured competitive intelligence profile.
 
 ${contextText}
 
@@ -278,7 +278,7 @@ Instructions:
 - productPortfolio: 3-5 key product categories or brands (each with source URL from the results)
 - recentStrategicMoves: 2-3 specific moves from 2023-2025 (acquisitions, launches, partnerships) with dates
 - geographicPresence.value: key markets and international footprint
-- pricingPositioning.value: pricing tier and market positioning (premium/mass-market/value)
+- pricingPositioning.value: pricing tier and market positioning (e.g. premium, mid-market, mass-market, value)
 - keyDifferentiator.value: their single most important competitive edge
 - overallSummary: 2-sentence executive summary
 

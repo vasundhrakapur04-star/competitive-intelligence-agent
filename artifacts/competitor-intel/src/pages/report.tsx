@@ -77,54 +77,52 @@ function SourceLink({ source, sourceTitle }: { source: string; sourceTitle?: str
 }
 
 function toBullets(text: string): string[] {
-  // Split on common sentence-ending punctuation or semicolons, then trim
-  const raw = text
-    .split(/[.;]\s+/)
+  // Split on sentence boundaries or semicolons, show full text — no truncation
+  return text
+    .split(/(?<=[.;])\s+/)
     .map(s => s.trim())
-    .filter(s => s.length > 8);
-  // Cap each bullet at ~80 chars
-  return raw.map(s => (s.length > 90 ? s.slice(0, 87) + "…" : s)).slice(0, 4);
+    .filter(s => s.length > 4);
 }
 
 function BulletList({ items }: { items: SourcedDataPoint[] }) {
   return (
-    <ul className="space-y-1.5">
-      {items.map((item, idx) => {
-        const bullets = toBullets(item.value);
-        const mainText = bullets[0] || item.value.slice(0, 90);
-        return (
-          <li key={idx} className="flex items-start gap-2 text-sm text-slate-700">
-            <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-blue-400 shrink-0" />
-            <span className="flex-1 leading-snug">
-              {mainText}
-              <SourceLink source={item.source} sourceTitle={item.sourceTitle} />
-            </span>
-          </li>
-        );
-      })}
+    <ul className="space-y-2">
+      {items.map((item, idx) => (
+        <li key={idx} className="flex items-start gap-2 text-sm text-slate-700">
+          <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-blue-400 shrink-0" />
+          <span className="flex-1 leading-relaxed">
+            {item.value}
+            <SourceLink source={item.source} sourceTitle={item.sourceTitle} />
+          </span>
+        </li>
+      ))}
     </ul>
   );
 }
 
 function SingleBullet({ data }: { data: SourcedDataPoint }) {
   const bullets = toBullets(data.value);
-  return (
-    <ul className="space-y-1">
-      {bullets.slice(0, 3).map((b, i) => (
-        <li key={i} className="flex items-start gap-2 text-sm text-slate-700">
-          <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-blue-400 shrink-0" />
-          <span className="leading-snug">{b}</span>
-        </li>
-      ))}
-      {bullets.length === 0 && (
+  if (bullets.length <= 1) {
+    return (
+      <ul className="space-y-1">
         <li className="flex items-start gap-2 text-sm text-slate-700">
           <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-blue-400 shrink-0" />
-          <span className="leading-snug">
-            {data.value.slice(0, 90)}
+          <span className="leading-relaxed">
+            {data.value}
             <SourceLink source={data.source} sourceTitle={data.sourceTitle} />
           </span>
         </li>
-      )}
+      </ul>
+    );
+  }
+  return (
+    <ul className="space-y-1.5">
+      {bullets.map((b, i) => (
+        <li key={i} className="flex items-start gap-2 text-sm text-slate-700">
+          <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-blue-400 shrink-0" />
+          <span className="leading-relaxed">{b}{i === bullets.length - 1 && <SourceLink source={data.source} sourceTitle={data.sourceTitle} />}</span>
+        </li>
+      ))}
     </ul>
   );
 }
@@ -171,7 +169,7 @@ function ComparisonTable({ profiles }: { profiles: CompanyProfile[] }) {
         if (p.limitedData) return <UnverifiedCell />;
         const top = p.productPortfolio[0];
         if (!top) return null;
-        const name = top.value.split(/[,.:]/)[0].slice(0, 35);
+        const name = top.value.split(/[,:]/)[0].trim();
         return <span className="text-xs font-medium text-slate-700">{name}</span>;
       },
     },
@@ -180,7 +178,7 @@ function ComparisonTable({ profiles }: { profiles: CompanyProfile[] }) {
       icon: Star,
       render: (p: CompanyProfile) => {
         if (p.limitedData) return <UnverifiedCell />;
-        const val = p.keyDifferentiator.value.split(".")[0].slice(0, 55);
+        const val = p.keyDifferentiator.value.split(".")[0].trim();
         return <span className="text-xs text-slate-600">{val}</span>;
       },
     },
@@ -258,7 +256,7 @@ function SnapshotSection({ profiles }: { profiles: CompanyProfile[] }) {
               <span className={`w-3 h-3 rounded-full ${color.accent}`} />
               <span className={`text-sm font-bold ${color.text}`}>{profile.companyName}</span>
             </div>
-            <p className="text-xs text-slate-600 leading-relaxed">{profile.overallSummary.slice(0, 120)}{profile.overallSummary.length > 120 ? "…" : ""}</p>
+            <p className="text-xs text-slate-600 leading-relaxed">{profile.overallSummary}</p>
             <div className="mt-3">
               <PricingBadge text={profile.pricingPositioning.value} />
             </div>
@@ -449,7 +447,7 @@ export default function Report() {
         {/* Title */}
         <div>
           <div className="flex items-center gap-2 mb-2">
-            <span className="text-xs font-semibold uppercase tracking-widest text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-100">FMCG Intelligence Report</span>
+            <span className="text-xs font-semibold uppercase tracking-widest text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-100">Competitive Intelligence Report</span>
           </div>
           <h1 className="text-2xl md:text-3xl font-bold text-slate-900 tracking-tight">{typedReport.title}</h1>
         </div>
