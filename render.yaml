@@ -5,7 +5,7 @@ services:
     runtime: node
     plan: free
     region: oregon
-    buildCommand: corepack enable && pnpm install && pnpm -r --if-present run build
+    buildCommand: corepack enable && pnpm install && pnpm --filter @workspace/api-server run build
     startCommand: node artifacts/api-server/dist/index.mjs
     envVars:
       - key: NODE_VERSION
@@ -25,7 +25,7 @@ services:
     runtime: node
     plan: free
     region: oregon
-    buildCommand: corepack enable && pnpm install && pnpm -r --if-present run build
+    buildCommand: corepack enable && pnpm install && pnpm --filter @workspace/competitor-intel run build
     startCommand: npx serve artifacts/competitor-intel/dist/public -s -l tcp://0.0.0.0:$PORT
     envVars:
       - key: NODE_VERSION
