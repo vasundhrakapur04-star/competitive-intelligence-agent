@@ -19,19 +19,14 @@ services:
       - key: NODE_ENV
         value: production
 
-# ── Frontend static site ────────────────────────────────────────────
-staticSites:
-  - name: competitive-intel-dashboard
+  # ── Frontend (served via npx serve) ──────────────────────────────────
+  - type: web
+    name: competitive-intel-dashboard
+    runtime: node
+    plan: free
+    region: oregon
     buildCommand: corepack enable && pnpm install && pnpm -r --if-present run build
-    staticPublishPath: artifacts/competitor-intel/dist/public
-    routes:
-      - type: rewrite
-        source: /*
-        destination: /index.html
-    headers:
-      - path: /*
-        name: X-Frame-Options
-        value: DENY
+    startCommand: npx serve artifacts/competitor-intel/dist/public -s -l tcp://0.0.0.0:$PORT
     envVars:
       - key: NODE_VERSION
         value: "20"
