@@ -1,10 +1,17 @@
 import { Switch, Route, Router as WouterRouter } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { setBaseUrl } from "@workspace/api-client-react";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
 import Report from "@/pages/report";
+
+// Point API calls at the backend service when deployed separately.
+// In dev, leave unset so requests go to the same origin (via proxy or same port).
+if (import.meta.env.VITE_API_URL) {
+  setBaseUrl(import.meta.env.VITE_API_URL);
+}
 
 const queryClient = new QueryClient();
 
